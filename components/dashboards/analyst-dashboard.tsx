@@ -14,6 +14,7 @@ export default function AnalystDashboard() {
     risk: true,
     exposure: true,
     vulnerability: false,
+    evacuation: true,
   })
   const [selectedBarangay, setSelectedBarangay] = useState<string | null>(null)
   const [resourceLgu, setResourceLgu] = useState("Metro Manila")
@@ -68,9 +69,21 @@ export default function AnalystDashboard() {
   ]
 
   const resourceNeeds = {
-    "Metro Manila": { foodPacks: 2500, rescueVehicles: 12, shelters: 8, medicalTeams: 5 },
-    "Quezon City": { foodPacks: 1800, rescueVehicles: 8, shelters: 6, medicalTeams: 3 },
-    Pasig: { foodPacks: 1200, rescueVehicles: 6, shelters: 4, medicalTeams: 2 },
+    "Metro Manila": {
+      foodPacks: 2500,
+      rescueVehicles: 12,
+      shelters: 8,
+      medicalTeams: 5,
+      evacuated: 1850,
+    },
+    "Quezon City": {
+      foodPacks: 1800,
+      rescueVehicles: 8,
+      shelters: 6,
+      medicalTeams: 3,
+      evacuated: 1200,
+    },
+    Pasig: { foodPacks: 1200, rescueVehicles: 6, shelters: 4, medicalTeams: 2, evacuated: 650 },
   }
 
   const getRiskColor = (score: number) => {
@@ -80,15 +93,16 @@ export default function AnalystDashboard() {
   }
 
   return (
-    <div className="space-y-4 h-full flex flex-col">
+    <div className="space-y-3 md:space-y-4 h-full flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0">
-        <h2 className="text-xl md:text-2xl font-bold">Geospatial Analysis Control Center</h2>
+        <h2 className="text-lg md:text-2xl font-bold">Geospatial Analysis Control Center</h2>
         <p className="text-xs md:text-sm text-muted-foreground">
           Real-time disaster prediction and resource optimization
         </p>
       </div>
 
+      {/* Tab Navigation */}
       <div className="flex gap-1 md:gap-2 border-b border-border overflow-x-auto flex-shrink-0">
         {[
           { id: "map", label: "Risk Map", icon: Map },
@@ -110,38 +124,36 @@ export default function AnalystDashboard() {
 
       {/* TAB: Risk Map */}
       {activeTab === "map" && (
-        <div className="flex-1 flex flex-col gap-3 md:gap-4 min-h-0">
+        <div className="flex-1 flex flex-col gap-3 md:gap-4 min-h-0 overflow-hidden">
           {/* Layer Controls */}
           <Card className="bg-background border-border flex-shrink-0">
-            <CardHeader className="pb-2 md:pb-3">
-              <CardTitle className="text-xs md:text-sm">Layer Controls</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Layer Controls</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {[
-                  { key: "risk", label: "Risk Prediction (48h)", desc: "Green/Yellow/Red overlay" },
-                  { key: "exposure", label: "Exposure Layer", desc: "Critical infrastructure" },
-                  { key: "vulnerability", label: "Vulnerability", desc: "Population density" },
+                  { key: "risk", label: "Risk", desc: "Prediction" },
+                  { key: "exposure", label: "Exposure", desc: "Infrastructure" },
+                  { key: "vulnerability", label: "Vulnerability", desc: "Population" },
+                  { key: "evacuation", label: "Evacuation", desc: "Points" },
                 ].map((layer) => (
                   <button
                     key={layer.key}
                     onClick={() => setLayers({ ...layers, [layer.key]: !layers[layer.key] })}
-                    className={`flex items-center gap-2 px-2 md:px-3 py-2 bg-card hover:bg-muted rounded border-2 transition text-left text-xs md:text-sm ${
-                      layers[layer.key as keyof typeof layers] ? "border-accent bg-accent/10" : "border-border"
+                    className={`flex flex-col items-center gap-1 px-2 py-2 rounded border-2 transition text-center text-xs ${
+                      layers[layer.key as keyof typeof layers]
+                        ? "border-accent bg-accent/10"
+                        : "border-border bg-card hover:bg-muted"
                     }`}
                   >
                     {layers[layer.key as keyof typeof layers] ? (
-                      <Eye className="w-4 h-4 text-accent flex-shrink-0" />
+                      <Eye className="w-4 h-4 text-accent" />
                     ) : (
-                      <EyeOff className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <EyeOff className="w-4 h-4 text-muted-foreground" />
                     )}
-                    <div className="hidden sm:block">
-                      <p className="text-xs font-medium">{layer.label}</p>
-                      <p className="text-xs text-muted-foreground">{layer.desc}</p>
-                    </div>
-                    <div className="sm:hidden">
-                      <p className="text-xs font-medium">{layer.label}</p>
-                    </div>
+                    <p className="font-medium">{layer.label}</p>
+                    <p className="text-xs text-muted-foreground">{layer.desc}</p>
                   </button>
                 ))}
               </div>
@@ -149,9 +161,9 @@ export default function AnalystDashboard() {
           </Card>
 
           {/* Map and Sidebar */}
-          <div className="flex-1 flex flex-col lg:flex-row gap-3 md:gap-4 min-h-0">
+          <div className="flex-1 flex flex-col lg:flex-row gap-3 md:gap-4 min-h-0 overflow-hidden">
             {/* Map */}
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 min-h-0 rounded-lg overflow-hidden">
               <RiskMap
                 layers={layers}
                 barangays={barangays}
@@ -160,17 +172,18 @@ export default function AnalystDashboard() {
               />
             </div>
 
-            <div className="w-full lg:w-80 flex flex-col gap-3 md:gap-4 overflow-y-auto max-h-96 lg:max-h-none">
+            {/* Right Sidebar */}
+            <div className="w-full lg:w-96 flex flex-col gap-3 overflow-y-auto max-h-96 lg:max-h-none pb-2">
               {/* Active Alerts */}
               <Card className="bg-background border-border flex-shrink-0">
-                <CardHeader className="pb-2 md:pb-3">
+                <CardHeader className="pb-2">
                   <CardTitle className="text-xs md:text-sm flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-500" />
                     Critical Warnings
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {activeAlerts.map((alert) => (
+                  {activeAlerts.slice(0, 2).map((alert) => (
                     <div key={alert.id} className="p-2 bg-red-500/10 border border-red-500/30 rounded text-xs">
                       <div className="font-bold text-red-500">{alert.type}</div>
                       <div className="text-muted-foreground text-xs">{alert.location}</div>
@@ -186,7 +199,7 @@ export default function AnalystDashboard() {
               {/* Detail Panel */}
               {selectedBarangay && (
                 <Card className="bg-background border-accent flex-shrink-0">
-                  <CardHeader className="pb-2 md:pb-3">
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-xs md:text-sm">Barangay Details</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-xs">
@@ -215,9 +228,9 @@ export default function AnalystDashboard() {
                 </Card>
               )}
 
-              {/* Real-Time Data Feeds */}
+              {/* Live Data Feeds */}
               <Card className="bg-background border-border flex-shrink-0">
-                <CardHeader className="pb-2 md:pb-3">
+                <CardHeader className="pb-2">
                   <CardTitle className="text-xs md:text-sm flex items-center gap-2">
                     <Activity className="w-4 h-4 text-accent" />
                     Live Feeds
@@ -229,9 +242,7 @@ export default function AnalystDashboard() {
                       <p className="font-medium text-accent">{feed.name}</p>
                       <div className="flex justify-between mt-1">
                         <span className="text-muted-foreground">{feed.value}</span>
-                        <span className={`${feed.status === "live" ? "text-green-400" : "text-blue-400"}`}>
-                          {feed.lastUpdate}
-                        </span>
+                        <span className="text-green-400">{feed.lastUpdate}</span>
                       </div>
                     </div>
                   ))}
@@ -240,7 +251,7 @@ export default function AnalystDashboard() {
 
               {/* Resource Management */}
               <Card className="bg-background border-border flex-shrink-0">
-                <CardHeader className="pb-2 md:pb-3">
+                <CardHeader className="pb-2">
                   <CardTitle className="text-xs md:text-sm">Resource Needs</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -258,14 +269,14 @@ export default function AnalystDashboard() {
                   <div className="space-y-1 text-xs">
                     {Object.entries(resourceNeeds[resourceLgu as keyof typeof resourceNeeds]).map(([key, value]) => (
                       <div key={key} className="flex justify-between p-1 bg-card rounded">
-                        <span className="text-muted-foreground">{key.replace(/([A-Z])/g, " $1")}:</span>
+                        <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, " $1")}:</span>
                         <span className="font-bold text-accent">{value}</span>
                       </div>
                     ))}
                   </div>
                   <Button size="sm" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-xs h-8">
                     <Download className="w-3 h-3 mr-1" />
-                    Report
+                    Export
                   </Button>
                 </CardContent>
               </Card>

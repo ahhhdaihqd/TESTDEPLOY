@@ -1,13 +1,24 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card } from "@/components/ui/card"
+
+interface EvacuationPoint {
+  id: string
+  name: string
+  type: "shelter" | "medical" | "command"
+  capacity: number
+  current: number
+  lat: number
+  lng: number
+}
 
 interface RiskMapProps {
   layers: {
     risk: boolean
     exposure: boolean
     vulnerability: boolean
+    evacuation: boolean
   }
   barangays: Array<{
     id: string
@@ -26,6 +37,30 @@ export default function RiskMap({ layers, barangays, selectedBarangay, onSelectB
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<any>(null)
   const markers = useRef<any[]>([])
+  const [mapLoaded, setMapLoaded] = useState(false)
+
+  const evacuationPoints: EvacuationPoint[] = [
+    {
+      id: "ep-001",
+      name: "Rizal School Gymnasium",
+      type: "shelter",
+      capacity: 500,
+      current: 150,
+      lat: 8.25,
+      lng: 124.5,
+    },
+    { id: "ep-002", name: "Barangay Health Center", type: "medical", capacity: 100, current: 25, lat: 8.2, lng: 124.6 },
+    { id: "ep-003", name: "DRRM Command Post", type: "command", capacity: 50, current: 20, lat: 8.15, lng: 124.55 },
+    {
+      id: "ep-004",
+      name: "Marikina Covered Court",
+      type: "shelter",
+      capacity: 800,
+      current: 200,
+      lat: 8.3,
+      lng: 124.4,
+    },
+  ]
 
   useEffect(() => {
     if (mapContainer.current && !map.current) {
@@ -79,6 +114,34 @@ export default function RiskMap({ layers, barangays, selectedBarangay, onSelectB
           markers.current.push(circle)
         })
 
+        if (layers.evacuation) {
+          evacuationPoints.forEach((point) => {
+            const iconColor = point.type === "shelter" ? "#3b82f6" : point.type === "medical" ? "#ec4899" : "#8b5cf6"
+            const occupancyPercentage = (point.current / point.capacity) * 100
+
+            const circle = L.circleMarker([point.lat, point.lng], {
+              radius: 10,
+              fillColor: iconColor,
+              color: "#ffffff",
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.8,
+            })
+
+            circle.bindPopup(
+              `<div style="font-size: 12px; font-family: sans-serif;">
+                <b>${point.name}</b><br/>
+                Type: ${point.type.charAt(0).toUpperCase() + point.type.slice(1)}<br/>
+                Capacity: ${point.current}/${point.capacity}<br/>
+                Occupancy: ${occupancyPercentage.toFixed(1)}%
+              </div>`,
+            )
+
+            circle.addTo(map.current)
+            markers.current.push(circle)
+          })
+        }
+
         // Highlight selected barangay
         if (selectedBarangay) {
           const selected = barangays.find((b) => b.id === selectedBarangay)
@@ -86,15 +149,22 @@ export default function RiskMap({ layers, barangays, selectedBarangay, onSelectB
             map.current.setView([selected.lat, selected.lng], 10)
           }
         }
+
+        setMapLoaded(true)
       }
       document.body.appendChild(script)
     }
 
-    // Update map on layer changes
-    return () => {
-      // Cleanup if needed
+    // Clear evacuation markers when layer is toggled
+    if (mapLoaded && map.current) {
+      if (!layers.evacuation) {
+        markers.current.forEach((marker) => {
+          map.current.removeLayer(marker)
+        })
+        markers.current = []
+      }
     }
-  }, [barangays, onSelectBarangay, selectedBarangay])
+  }, [barangays, onSelectBarangay, selectedBarangay, layers, mapLoaded])
 
   return (
     <Card className="flex-1 bg-background border-border overflow-hidden h-full">
